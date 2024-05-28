@@ -1,4 +1,35 @@
-const { program } = require("commander");
+const { default: chalk } = require("chalk");
+const { program, Option } = require("commander");
+
+class ServeCommand {
+  async apply(cli) {
+    const loadDevServerOptions = () => {
+      return [
+        {
+          name: "-p, --port <number>",
+          description: "specify port number",
+        },
+      ];
+    };
+    await cli.makeCommand(
+      {
+        name: "serve [entries...]",
+        description:
+          "Run the webpack dev server and watch for source file changes while serving.",
+      },
+      async () => {
+        return loadDevServerOptions();
+      },
+      async (options) => {
+        console.log("\n");
+        console.log(
+          chalk.yellow(`webpack-dev-sever start and port is ${options.port}!!!`)
+        );
+        console.log("\n");
+      }
+    );
+  }
+}
 
 class WebpackCLI {
   constructor() {
@@ -6,58 +37,45 @@ class WebpackCLI {
     this.program.name("webpack");
   }
 
-  async run(args, parseOptions) {
-    // Built-in internal commands
-    const buildCommandOptions = {
-      name: "build [entries...]",
-      alias: ["bundle", "b"],
-      description: "Run webpack (default command, can be omitted).",
-      usage: "[entries...] [options]",
-      dependencies: ["webpack"],
-    };
-    // Built-in external commands
-    const externalBuiltInCommandsInfo = [
-      {
-        name: "serve [entries...]",
-        alias: ["server", "s"],
-        pkg: "@webpack-cli/serve",
-      },
-    ];
-    const knownCommands = [buildCommandOptions, ...externalBuiltInCommandsInfo];
-    const isKnownCommand = (name) =>
-      knownCommands.find(
-        (command) =>
-          getCommandName(command.name) === name ||
-          (Array.isArray(command.alias)
-            ? command.alias.includes(name)
-            : command.alias === name)
-      );
+  makeOption(command, option) {
+    const optionForCommand = new Option(option.name, option.description);
+    command.addOption(optionForCommand);
+  }
 
-    // 由于这个 action 没有关联任何命令
-    // 当 parseAsync 解析之后得到的命令没有找到对应的 action（又或者解析之后发现命令为空）时
-    // 该 action 将被触发
-    this.program.action(async (options, program) => {
-      // 解析出没有被处理的具体指令
-      const { operands, unknown } = this.program.parseOptions(program.args);
-      const hasOperand = typeof operands[0] !== "undefined";
-      // 如果没有命令，则默认执行 build 命令
-      const operand = hasOperand ? operands[0] : "build";
-      let commandToRun = operand;
-      // 如果这个命令是 webpack 内置命令，那么就通过 loadCommandByName 去注册这个命令对应的 action
-      if (isKnownCommand(commandToRun)) {
-        await loadCommandByName(commandToRun, true);
+  async makeCommand(commandOptions, options, action) {
+    const command = this.program.command(commandOptions.name);
+    if (options) {
+      options = await options();
+      for (const option of options) {
+        this.makeOption(command, option);
       }
-      // 触发 loadCommandByName 注册的 action
-      await this.program.parseAsync(
-        [commandToRun, ...commandOperands, ...unknown],
-        {
-          from: "user",
-        }
-      );
+    }
+    command.action(action);
+  }
+
+  async loadCommandByName(commandName) {
+    if (commandName === "serve") {
+      const command = new ServeCommand();
+      await command.apply(this);
+    }
+  }
+
+  async run(args, parseOptions) {
+    // 避免使用未定义的 option 时报错
+    this.program.allowUnknownOption(true);
+    const isKnownCommand = (commandToRun) => commandToRun === "serve";
+    this.program.action(async (options, program) => {
+      const { operands, unknown } = this.program.parseOptions(program.args);
+      const commandToRun = operands[0];
+      if (isKnownCommand(commandToRun)) {
+        await this.loadCommandByName(commandToRun, true);
+      }
+      await this.program.parseAsync([commandToRun, ...unknown], {
+        from: "user",
+      });
     });
-    // 解析命令行参数，并根据解析得到的命令自动触发之前注册到指令上的 action
     await this.program.parseAsync(args, parseOptions);
   }
 }
-
+// node index serve
 new WebpackCLI().run(process.argv);

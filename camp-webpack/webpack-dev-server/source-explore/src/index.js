@@ -1,3 +1,12 @@
-const dom = document.querySelector("#app");
-dom.innerHTML = "explore webpack-dev-server";
-dom.style.fontSize = "20px";
+import hello from "./hello.js";
+
+const div = document.createElement("div");
+div.innerHTML = hello();
+
+document.body.appendChild(div);
+
+if (module.hot) {
+  module.hot.accept("./hello.js", function () {
+    div.innerHTML = hello();
+  });
+}
