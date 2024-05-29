@@ -20,7 +20,7 @@ class ServeCommand {
       async () => {
         return loadDevServerOptions();
       },
-      async (options) => {
+      async (entries, options) => {
         console.log("\n");
         console.log(
           chalk.yellow(`webpack-dev-sever start and port is ${options.port}!!!`)
@@ -77,5 +77,5 @@ class WebpackCLI {
     await this.program.parseAsync(args, parseOptions);
   }
 }
-// node index serve
+// node index serve --port 3000
 new WebpackCLI().run(process.argv);
