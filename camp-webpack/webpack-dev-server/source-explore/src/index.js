@@ -7,6 +7,6 @@ document.body.appendChild(div);
 
 if (module.hot) {
   module.hot.accept("./hello.js", function () {
-    div.innerHTML = hello();
+    div.innerHTML = `${hello()}!!!`;
   });
 }

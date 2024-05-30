@@ -1,4 +1,4 @@
 const hello = () => {
-  return "hello world nice to meet you";
+  return "Hello world! Nice to meet you";
 };
 export default hello;
