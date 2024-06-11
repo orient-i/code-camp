@@ -104,7 +104,7 @@ module.exports = Config;
 ### 入口
 
 当在终端敲下命令 `npm start` 之后，整个工作流程就开始了：\
-![start](http://47.106.154.218/share/webpack/dev-server/dev-server-start.png)\
+![start](http://47.106.154.218/share/webpack/dev-server/dev-server-start.png "start")\
 `WebpackCLI` 是 `webpack-cli/lib/webpack-cli.js` 文件的导出内容，它通过第三方库 [commander](https://www.npmjs.com/package/commander) 来处理命令行交互。下面是它关于 `webpack-dev-server` 运行部分精简之后的代码：
 
 ```javascript
@@ -161,7 +161,7 @@ class WebpackCLI {
 ```
 
 虽然 `loadCommandByName` 最后是调用了 `ServeCommand.apply` 方法，但其实这个方法内部还是用的 `WebpackCLI.makeCommand` 来给命令注册 action 的。\
-!['@webpack-cli/serve'](http://47.106.154.218/share/webpack/dev-server/@webpack-cli-serve.png)
+!['@webpack-cli/serve'](http://47.106.154.218/share/webpack/dev-server/@webpack-cli-serve.png "'@webpack-cli/serve'")
 
 下面是 `ServeCommand.apply` 精简后的代码：
 
@@ -795,8 +795,6 @@ function hotCheck(applyOnUpdate) {
 
     ![\_\_webpack\_require\_\_.hmrM](http://47.106.154.218/share/webpack/dev-server/__webpack_require__.hmrM.png "__webpack_require__.hmrM")
 
-
-
 2.  `__webpack_require__.hmrC` 逻辑如下：
 
     ```javascript
@@ -830,9 +828,9 @@ function hotCheck(applyOnUpdate) {
     };
     ```
 
-    ![\_\_webpack\_require\_\_.hmrC.jsonp](http://47.106.154.218/share/webpack/dev-server/__webpack_require__.hmrC.jsonp.png)
+    ![\_\_webpack\_require\_\_.hmrC.jsonp](http://47.106.154.218/share/webpack/dev-server/__webpack_require__.hmrC.jsonp.png "__webpack_require__.hmrC.jsonp")
 
-    ![xxx.hot-update.js](http://47.106.154.218/share/webpack/dev-server/__webpack_require__.hmrC.js.png)
+    ![xxx.hot-update.js](http://47.106.154.218/share/webpack/dev-server/__webpack_require__.hmrC.js.png "xxx.hot-update.js")
 
     `self["webpackHotUpdatewebpack_dev_server"]` 同 `__webpack_require__.hmrM` 一样也是操作字符串生成的。它的作用就是将变更记录下来，以便后续的 `internalApply` 处理变更：
 
@@ -850,8 +848,6 @@ function hotCheck(applyOnUpdate) {
         // other code ...
     };
     ```
-
-
 
 3.  在前面的 `JS` 文件和 `JSON` 文件都处理完成之后，进入 `internalApply` 的处理流程。`internalApply` 的逻辑简化后如下：
 
@@ -1023,3 +1019,4 @@ function applyHandler(options) {
 
 ### 总结
 
+![whole\_flow](http://47.106.154.218/share/webpack/dev-server/whole_flow.png)
