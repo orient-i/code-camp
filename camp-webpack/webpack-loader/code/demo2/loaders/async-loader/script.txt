@@ -1,0 +1,3 @@
+const asyncDiv = document.createElement("div");
+asyncDiv.innerHTML = "this is content from async loader!";
+app.appendChild(asyncDiv);
