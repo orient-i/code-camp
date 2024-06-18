@@ -43,7 +43,7 @@
 
 > 基于结构化数据的特殊呈现，可以在这份<a href="https://developers.google.com/search/docs/appearance/structured-data/search-gallery?hl=zh-cn">谷歌开发文档</a>中找到。
 
-### 使用
+### 语法
 
 和微数据相关的所有 HTML 属性如下：
 
@@ -171,3 +171,7 @@
 谷歌搜索引擎支持上述所有格式，<a href="https://schema.org/">Schema.org</a> 的每张词汇表都支持微数据、JSON-LD、RDFa 这三种格式。
 
 > 微数据适用于对 SEO 非常重视的产品，而且主要针对的是谷歌、微软、雅虎等外国的搜索引擎。
+
+### 参考资料
+
+<a href="https://juejin.cn/post/7170149532502589476">一文读懂 HTML 微数据</a>
