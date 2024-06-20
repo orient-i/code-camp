@@ -39,9 +39,49 @@
 }
 ```
 
-有了这种结构化数据之后，搜索引擎就可以更准确地理解页面内容，给页面建立更加精细的分类，提供更加准确的搜索结果。
+搜索引擎会根据结构化数据了解网页上的内容，并使这些内容以更丰富的形式显示搜索结果，即“富媒体搜索结果”。比如下面这是一个包含有效结构化数据的食谱网页和它在 `Google` 搜索结果中的呈现效果：
 
-> 基于结构化数据的特殊呈现，可以在这份<a href="https://developers.google.com/search/docs/appearance/structured-data/search-gallery?hl=zh-cn">谷歌开发文档</a>中找到。
+<img src="https://developers.google.com/static/search/docs/images/recipe02.png?hl=zh-cn" />
+
+```html
+<!-- 这是另一种结构化数据方式：JSON-LD -->
+<html>
+  <head>
+    <title>Apple Pie by Grandma</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org/",
+        "@type": "Recipe",
+        "name": "Apple Pie by Grandma",
+        "author": "Elaine Smith",
+        "image": "https://images.edge-generalmills.com/56459281-6fe6-4d9d-984f-385c9488d824.jpg",
+        "description": "A classic apple pie.",
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "reviewCount": "7462",
+          "bestRating": "5",
+          "worstRating": "1"
+        },
+        "prepTime": "PT30M",
+        "totalTime": "PT1H30M",
+        "recipeYield": "8",
+        "nutrition": {
+          "@type": "NutritionInformation",
+          "calories": "512 calories"
+        },
+        "recipeIngredient": [
+          "1 box refrigerated pie crusts, softened as directed on box",
+          "6 cups thinly sliced, peeled apples (6 medium)"
+        ]
+      }
+    </script>
+  </head>
+  <body></body>
+</html>
+```
+
+> 基于结构化数据的更多特殊呈现，可以在这份<a href="https://developers.google.com/search/docs/appearance/structured-data/search-gallery?hl=zh-cn">谷歌开发文档</a>中找到。
 
 ### 语法
 
@@ -141,7 +181,7 @@
 
 除了微数据之外，还有一些别的格式可用于帮助搜索引擎提取页面中的结构化数据：
 
-- JSON-LD：在一个 `type="application/ld+json"` 的 `script` 标签下使用 JSON 直接表示页面里的结构化数据。
+- JSON-LD：<b>最推荐使用的方式</b>。在一个 `type="application/ld+json"` 的 `script` 标签下使用 JSON 直接表示页面里的结构化数据。
 
   ```html
   <script type="application/ld+json">
