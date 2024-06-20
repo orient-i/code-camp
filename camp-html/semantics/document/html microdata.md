@@ -12,7 +12,7 @@
 
 ```html
 <h1>对象</h1>
-<p>名字：影心</p>
+<p>名字：章杉</p>
 <p>身高：165cm</p>
 <p>体重：55kg</p>
 ```
@@ -22,7 +22,7 @@
 ```html
 <div itemscope itemtype="https://schema.org/Person">
   <h1>对象</h1>
-  <p>名字：<span itemprop="name">影心</span></p>
+  <p>名字：<span itemprop="name">章杉</span></p>
   <p>身高：<span itemprop="height">165 cm</span></p>
   <p>体重：<span itemprop="weight">55 kg</span></p>
 </div>
@@ -33,7 +33,7 @@
 ```javascript
 {
   "@type": "Person",
-  "name": "影心",
+  "name": "章杉",
   "height": "165cm",
   "weight": "55kg"
 }
@@ -78,11 +78,11 @@
 > | ... | ... | ... |
 
 此外，<a href="https://schema.org">Schema.org</a> 还提供了一个<a href="https://validator.schema.org/">语法检查工具</a>来检查代码中的微数据语法是否正确：
-<img src="">
+<img src="http://47.106.154.218/share/html/microdata/schema.org_validator.png">
 
 ##### itemprop
 
-一般来说，微数据属性会提取 HTML 标签的文本内容作为它的值，比如前面的例子里，`name` 的值就是文本内容“影心”，但也有些特殊标签的取值逻辑略微有些差别：
+一般来说，微数据属性会提取 HTML 标签的文本内容作为它的值，比如前面的例子里，`name` 的值就是文本内容“章杉”，但也有些特殊标签的取值逻辑略微有些差别：
 
 ```html
 <!-- src 的内容将作为 image 属性的值 -->
@@ -135,7 +135,7 @@
 ```
 
 上面这种情况下，`a` 属性会被添加到 `Item` 中：
-<img src="">
+<img src="http://47.106.154.218/share/html/microdata/itemref.png">
 
 ### 结构化数据的其他格式
 
@@ -148,7 +148,7 @@
     {
       "@context": "https://schema.org",
       "@type": "Person",
-      "name": "影心",
+      "name": "章杉",
       "height": "165cm",
       "weight": "55kg"
     }
@@ -160,7 +160,7 @@
   ```html
   <div vocab="https://schema.org/" typeof="Person">
     <h1 property="identifier">对象</h1>
-    <p>名字：<span property="height">影心</span></p>
+    <p>名字：<span property="height">章杉</span></p>
     <p>身高：<span property="height">165 cm</span></p>
     <p>体重：<span property="weight">55 kg</span></p>
   </div>
@@ -171,7 +171,3 @@
 谷歌搜索引擎支持上述所有格式，<a href="https://schema.org/">Schema.org</a> 的每张词汇表都支持微数据、JSON-LD、RDFa 这三种格式。
 
 > 微数据适用于对 SEO 非常重视的产品，而且主要针对的是谷歌、微软、雅虎等外国的搜索引擎。
-
-### 参考资料
-
-<a href="https://juejin.cn/post/7170149532502589476">一文读懂 HTML 微数据</a>
