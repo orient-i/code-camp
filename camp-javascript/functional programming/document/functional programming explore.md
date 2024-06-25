@@ -53,14 +53,14 @@ return newArr;
 
 下面是函数是编程的思路：
 
-1. 需要一个函数将 `String 数组` 转换成 `Object 数组`。
-   <img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f43665b08f4~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+1. 需要一个函数将 `String 数组` 转换成 `Object 数组`。  
+   <img src="../assets/1.webp" />
 2. 需要一个实现将 `String` 转换成 `Object`。
-   <img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f43662b192f~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+   <img src="../assets/2.webp" />
 3. 由于字符串的格式并不统一，所以可以先统一字符串格式，再来实现转换。
-   <img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f43661763ce~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+   <img src="../assets/3.webp" />
 4. 统一字符格式的 `capitalizeName` 可以是几个方法的组合，每个方法负责一部分的处理逻辑（`split`, `join`, `capitalize`）。
-   <img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f43667a603a~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+   <img src="../assets/4.webp" />
 
 至此，基本思路分析完成，下面是代码：
 
@@ -89,7 +89,7 @@ convertName(["john-reese", "harold-finch", "sameen-shaw"]);
 
 “函数”这个东西在我们很小的时候就已经开始接触了，一元函数、二元一次函数等等。根据学术上的定义，函数是一种描述集合与集合之间的转换关系，每一个输入通过函数之后都会返回一个输出值。
 
-<img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f436bd171df~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+<img src="../assets/5.webp" />
 
 所以，**函数**本质上是一个**关系**，或者说是一种**映射**。而这种映射关系是可以组合的：如果一个函数的输出类型可以匹配另一个函数的输入类型要求，那么它们就可以组合在一起。
 
@@ -103,11 +103,11 @@ const convert2Obj = compose(genObj("name"), capitalizeName);
 
 这其实非常像**流水线**，把输入当原料，把输出当产品。**数据可以不断地从一个函数的输入口进入，然后从输出口输出，接着又再次流向另一个函数的输入口。如此往复，直到最后得到我们想要的输出结果。**
 
-<img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f438a16ebfe~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+<img src="../assets/6.webp" />
 
 <span style="color: #2673dd">函数式编程是什么？它是一种强调在编译过程中把更多的关注点放在如何去构建关系的编程范式。</span>通过构建一条高效的构建流水线，一次性解决所有问题，而不是把精力分散在不同的加工厂中来回奔波传递数据。
 
-<img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f438b83168e~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+<img src="../assets/7.webp" />
 
 ### 特点
 
@@ -140,7 +140,7 @@ const convert2Obj = compose(genObj("name"), capitalizeName);
 - 不可变数据：所有数据都是不可变的，如果想要修改一个对象，那么应该先创建一个新的对象用来修改，而不是直接修改现有对象。
 
 为了实现这两个特点，<span style="color: #2673dd">函数式编程提出函数应该具备两个特性：无副作用、纯函数。</span>
-<img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f438daa6474~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+<img src="../assets/8.webp" />
 
 #### 无副作用
 
@@ -378,7 +378,7 @@ const upperLastItem = compose(log, toUpperCase, head, reverse);
 ```
 
 通过参数可以清晰地看出 `upperLastItem` 做了什么工作，它完成了一套流水线。所有经过这条流水线的参数都会经历：`reverse -> head -> toUppercase -> log` 这些函数的加工，最后生成结果。
-<img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f438eba5b11~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+<img src="../assets/9.webp" />
 
 更完美的是，这些函数都是非常简单的纯函数，我们可以进行随意的组合，随意使用，不用有任何的顾忌。
 
@@ -401,7 +401,7 @@ const logLastUpper = compose(log, lastUppder);
 
 这个过程，就像搭乐高积木一样。
 
-<img src="https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/9/5/16d00f43950415d2~tplv-t2oaga2asx-jj-mark:3024:0:0:0:q75.awebp" />
+<img src="../assets/10.webp" />
 
 由此可见，大型程序都可以通过这样一步步的拆分组合实现，而剩下要做的，就是去构造足够多的积木块（函数）。
 
@@ -422,6 +422,6 @@ const logLastUpper = compose(log, lastUppder);
 
 ### 参考资料
 
-[简明 JavaScript 函数式编程——入门篇](https://juejin.cn/post/6844903936378273799?searchId=20240621155523135F885AF06813765E06#heading-30)
-[30 秒了解尾递归和尾递归优化](https://juejin.cn/post/6844903798834462733?from=search-suggest)
+[简明 JavaScript 函数式编程——入门篇](https://juejin.cn/post/6844903936378273799?searchId=20240621155523135F885AF06813765E06#heading-30)  
+[30 秒了解尾递归和尾递归优化](https://juejin.cn/post/6844903798834462733?from=search-suggest)  
 [什么是尾递归？尾递归和普通递归的区别](https://juejin.cn/post/6959549674990600228)
