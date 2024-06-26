@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>文本是否出现省略号</title>
+    <style>
+      .box {
+        border: 1px solid gray;
+        padding: 10px;
+        resize: horizontal;
+      }
+      .ellipsis {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      ul {
+        overflow: hidden;
+        list-style: none;
+        padding-left: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box ellipsis">
+      Lorem ipsum dolor sit amet consectetur adipisicing elit.
+    </div>
+    <p>请选择计算方法</p>
+    <ul class="method">
+      <li>
+        <input type="radio" name="method" value="element-plus" /> Element Plus
+        包的实现方法
+      </li>
+      <li>
+        <input type="radio" name="method" value="element-plus" /> Element Plus
+        包的实现方法
+      </li>
+      <li>
+        <input type="radio" name="method" value="element-plus" /> Element Plus
+        包的实现方法
+      </li>
+    </ul>
+    <div class="result"></div>
+    <script>
+      const isGreaterThan = (a, b, epsilon = 0.01) => a - b > epsilon;
+
+      const box = document.querySelector(".box");
+      const result = document.querySelector(".result");
+      // https://juejin.cn/post/7262280335978741797?searchId=20240130111950BB3F293728033C73BECB#heading-2
+      const getPadding = (el) => {
+        const style = window.getComputedStyle(el, null);
+        const paddingLeft = Number.parseInt(style.paddingLeft, 10) || 0;
+        const paddingRight = Number.parseInt(style.paddingRight, 10) || 0;
+        const paddingTop = Number.parseInt(style.paddingTop, 10) || 0;
+        const paddingBottom = Number.parseInt(style.paddingBottom, 10) || 0;
+        return {
+          left: paddingLeft,
+          right: paddingRight,
+          top: paddingTop,
+          bottom: paddingBottom,
+        };
+      };
+      const checkEllipsis = () => {
+        const range = document.createRange();
+        range.setStart(box, 0);
+        range.setEnd(box, box.childNodes.length);
+        let { width: rangeWidth, height: rangeHeight } =
+          range.getBoundingClientRect();
+        const offsetWidth = rangeWidth - Math.floor(rangeWidth);
+        const offsetHeight = rangeHeight - Math.floor(rangeHeight);
+        if (offsetWidth < 0.001) {
+          rangeWidth = Math.floor(rangeWidth);
+        }
+        if (offsetHeight < 0.001) {
+          rangeHeight = Math.floor(rangeHeight);
+        }
+        const { width: boxWidth, height: boxHeight } =
+          box.getBoundingClientRect();
+        const { top, left, right, bottom } = getPadding(box);
+        const horizontalPadding = left + right;
+        const verticalPadding = top + bottom;
+
+        if (
+          isGreaterThan(rangeWidth + horizontalPadding + 2, boxWidth) ||
+          isGreaterThan(rangeHeight + verticalPadding, boxHeight) ||
+          // When using a high-resolution screen, it is possible that a returns cellChild.scrollWidth value of 1921 and
+          // cellChildWidth returns a value of 1920.994140625. #16856 #16673
+          isGreaterThan(box.scrollWidth, boxWidth)
+        ) {
+          result.textContent = "计算结果：存在省略号";
+        } else {
+          result.textContent = "计算结果：容器宽度足够，没有省略号了";
+        }
+      };
+
+      checkEllipsis();
+      const resizeObserver = new ResizeObserver(checkEllipsis);
+      resizeObserver.observe(box);
+    </script>
+  </body>
+</html>
