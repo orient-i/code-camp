@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>文本是否出现省略号</title>
+    <style>
+      .box {
+        border: 1px solid gray;
+        padding: 10px;
+        resize: horizontal;
+      }
+      .ellipsis {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      ul {
+        overflow: hidden;
+        list-style: none;
+        padding-left: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box ellipsis">
+      Lorem ipsum dolor sit amet consectetur adipisicing elit.
+    </div>
+    <div class="result"></div>
+    <script>
+      const box = document.querySelector(".box");
+      const result = document.querySelector(".result");
+
+      // https://github.com/element-plus/element-plus/blob/dev/packages/components/table/src/table-body/events-helper.ts#L11
+
+      const isGreaterThan = (a, b, epsilon = 0.01) => a - b > epsilon;
+
+      const getPaddingAndBorder = (el) => {
+        const style = window.getComputedStyle(el, null);
+        const {
+          paddingLeft,
+          paddingRight,
+          paddingTop,
+          paddingBottom,
+          borderLeftWidth,
+          borderRightWidth,
+          borderTopWidth,
+          borderBottomWidth,
+        } = style;
+
+        return {
+          pLeft: parseInt(paddingLeft, 10) || 0,
+          pRight: parseInt(paddingRight, 10) || 0,
+          pTop: parseInt(paddingTop, 10) || 0,
+          pBottom: parseInt(paddingBottom, 10) || 0,
+          bLeft: parseInt(borderLeftWidth, 10) || 0,
+          bRight: parseInt(borderRightWidth, 10) || 0,
+          bTop: parseInt(borderTopWidth, 10) || 0,
+          bBottom: parseInt(borderBottomWidth, 10) || 0,
+        };
+      };
+
+      const checkEllipsis = (el, showEl) => {
+        // use range width instead of scrollWidth to determine whether the text is overflowing
+        // to address a potential FireFox bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1074543#c3
+        const range = document.createRange();
+        range.setStart(el, 0);
+        range.setEnd(el, el.childNodes.length);
+        let { width: rangeWidth, height: rangeHeight } =
+          range.getBoundingClientRect();
+        /** detail: https://github.com/element-plus/element-plus/issues/10790
+         *  What went wrong?
+         *  UI > Browser > Zoom, In Blink/WebKit, getBoundingClientRect() sometimes returns inexact values, probably due to lost precision during internal calculations. In the example above:
+         *    - Expected: 188
+         *    - Actual: 188.00000762939453
+         */
+        if (rangeWidth - Math.floor(rangeWidth) < 0.001) {
+          rangeWidth = Math.floor(rangeWidth);
+        }
+        if (rangeHeight - Math.floor(rangeHeight) < 0.001) {
+          rangeHeight = Math.floor(rangeHeight);
+        }
+        const { width: elWidth, height: elHeight } = el.getBoundingClientRect();
+        const { pLeft, pRight, pTop, pBottom, bLeft, bRight, bTop, bBottom } =
+          getPaddingAndBorder(el);
+
+        const horizontalWidth = rangeWidth + pLeft + pRight + bLeft + bRight;
+        const verticalHeight = rangeHeight + pTop + pBottom + bTop + bBottom;
+
+        const showTip =
+          isGreaterThan(horizontalWidth, elWidth) ||
+          isGreaterThan(verticalHeight, elHeight) ||
+          // When using a high-resolution screen, it is possible that a returns cellChild.scrollWidth value of 1921 and
+          // cellChildWidth returns a value of 1920.994140625. #16856 #16673
+          isGreaterThan(el.scrollWidth, elWidth);
+
+        showEl.textContent = showTip ? "宽度不够，出现省略号" : "宽度充足";
+      };
+
+      checkEllipsis(box, result);
+      const resizeObserver = new ResizeObserver(() =>
+        checkEllipsis(box, result)
+      );
+      resizeObserver.observe(box);
+    </script>
+  </body>
+</html>
