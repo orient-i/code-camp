@@ -27,76 +27,81 @@
     <div class="box ellipsis">
       Lorem ipsum dolor sit amet consectetur adipisicing elit.
     </div>
-    <p>请选择计算方法</p>
-    <ul class="method">
-      <li>
-        <input type="radio" name="method" value="element-plus" /> Element Plus
-        包的实现方法
-      </li>
-      <li>
-        <input type="radio" name="method" value="element-plus" /> Element Plus
-        包的实现方法
-      </li>
-      <li>
-        <input type="radio" name="method" value="element-plus" /> Element Plus
-        包的实现方法
-      </li>
-    </ul>
     <div class="result"></div>
     <script>
-      const isGreaterThan = (a, b, epsilon = 0.01) => a - b > epsilon;
-
       const box = document.querySelector(".box");
       const result = document.querySelector(".result");
-      // https://juejin.cn/post/7262280335978741797?searchId=20240130111950BB3F293728033C73BECB#heading-2
-      const getPadding = (el) => {
+
+      // https://github.com/element-plus/element-plus/blob/dev/packages/components/table/src/table-body/events-helper.ts#L11
+
+      const isGreaterThan = (a, b, epsilon = 0.01) => a - b > epsilon;
+
+      const getPaddingAndBorder = (el) => {
         const style = window.getComputedStyle(el, null);
-        const paddingLeft = Number.parseInt(style.paddingLeft, 10) || 0;
-        const paddingRight = Number.parseInt(style.paddingRight, 10) || 0;
-        const paddingTop = Number.parseInt(style.paddingTop, 10) || 0;
-        const paddingBottom = Number.parseInt(style.paddingBottom, 10) || 0;
+        const {
+          paddingLeft,
+          paddingRight,
+          paddingTop,
+          paddingBottom,
+          borderLeftWidth,
+          borderRightWidth,
+          borderTopWidth,
+          borderBottomWidth,
+        } = style;
+
         return {
-          left: paddingLeft,
-          right: paddingRight,
-          top: paddingTop,
-          bottom: paddingBottom,
+          pLeft: parseInt(paddingLeft, 10) || 0,
+          pRight: parseInt(paddingRight, 10) || 0,
+          pTop: parseInt(paddingTop, 10) || 0,
+          pBottom: parseInt(paddingBottom, 10) || 0,
+          bLeft: parseInt(borderLeftWidth, 10) || 0,
+          bRight: parseInt(borderRightWidth, 10) || 0,
+          bTop: parseInt(borderTopWidth, 10) || 0,
+          bBottom: parseInt(borderBottomWidth, 10) || 0,
         };
       };
-      const checkEllipsis = () => {
+
+      const checkEllipsis = (el, showEl) => {
+        // use range width instead of scrollWidth to determine whether the text is overflowing
+        // to address a potential FireFox bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1074543#c3
         const range = document.createRange();
-        range.setStart(box, 0);
-        range.setEnd(box, box.childNodes.length);
+        range.setStart(el, 0);
+        range.setEnd(el, el.childNodes.length);
         let { width: rangeWidth, height: rangeHeight } =
           range.getBoundingClientRect();
-        const offsetWidth = rangeWidth - Math.floor(rangeWidth);
-        const offsetHeight = rangeHeight - Math.floor(rangeHeight);
-        if (offsetWidth < 0.001) {
+        /** detail: https://github.com/element-plus/element-plus/issues/10790
+         *  What went wrong?
+         *  UI > Browser > Zoom, In Blink/WebKit, getBoundingClientRect() sometimes returns inexact values, probably due to lost precision during internal calculations. In the example above:
+         *    - Expected: 188
+         *    - Actual: 188.00000762939453
+         */
+        if (rangeWidth - Math.floor(rangeWidth) < 0.001) {
           rangeWidth = Math.floor(rangeWidth);
         }
-        if (offsetHeight < 0.001) {
+        if (rangeHeight - Math.floor(rangeHeight) < 0.001) {
           rangeHeight = Math.floor(rangeHeight);
         }
-        const { width: boxWidth, height: boxHeight } =
-          box.getBoundingClientRect();
-        const { top, left, right, bottom } = getPadding(box);
-        const horizontalPadding = left + right;
-        const verticalPadding = top + bottom;
+        const { width: elWidth, height: elHeight } = el.getBoundingClientRect();
+        const { pLeft, pRight, pTop, pBottom, bLeft, bRight, bTop, bBottom } =
+          getPaddingAndBorder(el);
 
-        if (
-          isGreaterThan(rangeWidth + horizontalPadding + 2, boxWidth) ||
-          isGreaterThan(rangeHeight + verticalPadding, boxHeight) ||
+        const horizontalWidth = rangeWidth + pLeft + pRight + bLeft + bRight;
+        const verticalHeight = rangeHeight + pTop + pBottom + bTop + bBottom;
+
+        const showTip =
+          isGreaterThan(horizontalWidth, elWidth) ||
+          isGreaterThan(verticalHeight, elHeight) ||
           // When using a high-resolution screen, it is possible that a returns cellChild.scrollWidth value of 1921 and
           // cellChildWidth returns a value of 1920.994140625. #16856 #16673
-          isGreaterThan(box.scrollWidth, boxWidth)
-        ) {
-          result.textContent = "计算结果：存在省略号";
-        } else {
-          result.textContent = "计算结果：容器宽度足够，没有省略号了";
-        }
+          isGreaterThan(el.scrollWidth, elWidth);
+
+        showEl.textContent = showTip ? "宽度不够，出现省略号" : "宽度充足";
       };
 
-      checkEllipsis();
-      const resizeObserver = new ResizeObserver(checkEllipsis);
+      checkEllipsis(box, result);
+      const resizeObserver = new ResizeObserver(() =>
+        checkEllipsis(box, result)
+      );
       resizeObserver.observe(box);
     </script>
   </body>
