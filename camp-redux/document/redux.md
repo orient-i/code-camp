@@ -31,6 +31,8 @@ src
 
 ##### actionTypes.js
 
+`actionTypes.js` 文件用于定义一些 `redux` 内部使用的 `action` 类型，`randomString` 函数用于生成随机字符串，防止这些内部使用的 `action` 类型和开发者定义的 `action` 类型发生冲突。
+
 ```javascript
 const randomString = () =>
   Math.random().toString(36).substring(7).split("").join(".");
@@ -44,9 +46,9 @@ const ActionTypes = {
 export default ActionTypes;
 ```
 
-`actionTypes.js` 文件用于定义一些 `redux` 内部使用的 `action` 类型，`randomString` 函数用于生成随机字符串，防止这些内部使用的 `action` 类型和开发者定义的 `action` 类型发生冲突。
-
 ##### formatProdErrorMessage
+
+`formatProdErrorMessage.js` 文件用于格式化在生产环节中捕获到的错误消息。
 
 ```javascript
 function formatProdErrorMessage(code) {
@@ -59,9 +61,9 @@ function formatProdErrorMessage(code) {
 export default formatProdErrorMessage;
 ```
 
-`formatProdErrorMessage.js` 文件用于格式化在生产环节中捕获到的错误消息。
-
 ##### isPlainObject
+
+`isPlainObject.js` 文件的作用就像它的文件名一样，它用于判定参数是否是一个“纯对象”。
 
 ```javascript
 export default function isPlainObject(obj) {
@@ -76,8 +78,6 @@ export default function isPlainObject(obj) {
 }
 ```
 
-`isPlainObject.js` 文件的作用就像它的文件名一样，它用于判定参数是否是一个“纯对象”。
-
 “纯对象”指的是直接继承自 `Object.prototype` 的对象（或者原型为 `null` 的对象），可以通过字面量声明、`new Object()`、`Object.create(null)` 这三种方式创建纯对象。
 
 > 注意，4.2.1 的 isPlainObject 不会将 Object.create(null) 创建的对象视作纯对象。这个问题在 5.0.1 被修复了，详情请看 https://github.com/reduxjs/redux/pull/4633
@@ -88,14 +88,16 @@ export default function isPlainObject(obj) {
 
 ##### symbol-observable
 
+`symbol-observale.js` 文件是对 `Symbol.observable` 的 `polyfill`。
+
 ```javascript
 export default (() =>
   (typeof Symbol === "function" && Symbol.observable) || "@@observable")();
 ```
 
-`symbol-observale.js` 文件是对 `Symbol.observable` 的 `polyfill`。
-
 ##### warning
+
+`warning.js` 文件会先将错误的详细信息打印出来，然后再将错误抛出。
 
 ```javascript
 export default function warning(message) {
@@ -108,13 +110,13 @@ export default function warning(message) {
 }
 ```
 
-`warning.js` 文件会先将错误的详细信息打印出来，然后再将错误抛出。
-
 #### core
 
 接下来逐个分析核心文件代码。
 
 ##### index
+
+`index.js` 文件是个纯导出文件，用于将其他文件的内容向外导出。
 
 ```javascript
 import { createStore, legacy_createStore } from "./createStore";
@@ -135,9 +137,9 @@ export {
 };
 ```
 
-`index.js` 文件是个纯导出文件，用于将其他文件的内容向外导出。
-
 ##### compose
+
+`compose.js` 文件用于实现函数组合。
 
 ```javascript
 export default function compose(...funcs) {
@@ -154,19 +156,34 @@ export default function compose(...funcs) {
 }
 ```
 
-`compose.js` 文件用于实现函数组合。
-
 ##### bindActionCreators
 
-`actionCreator` 是指返回值为 `action` 的函数，例如：
+`action creator` 是指返回值为 `action` 的函数，例如：
 
 ```javascript
 function add(payload) {
   return { type: "add", payload };
 }
+
+class ComponentA extends React.Component {
+  handleClick() {
+    const { add } = this.props;
+  }
+
+  render() {
+    return <div onClick={handleClick}>increment</div>;
+  }
+}
+
+const mapDIspatchToProps = (dispatch) => ({
+  add: () => dispatch(add);
+});
+
+// prettier ignore
+export default connect(undefined, mapDispatchToProps, undefined, undefined)(ComponentA);
 ```
 
-对于一个 `actionCreator`，代码中的常见用法是 `dispatch(add(payload))`。`bindActionCreators` 则会将 `dispatch` 和 `actionCreator` 给 `bind` (绑定)起来。
+`bindActionCreators` 会将 `dispatch` 和 `action creator` 给 `bind` (绑定)起来，自动执行 `dispatch` 操作，不再需要开发者手动执行 `dispatch` 操作。
 
 ```javascript
 function bindActionCreator(actionCreator, dispatch) {
@@ -198,4 +215,102 @@ export default function bindActionCreators(actionCreators, dispatch) {
   }
   return boundActionCreators;
 }
+```
+
+在类组件场景下，使用 `connect` 将 `action creator` 绑定到组件上时，可以将 `mapDispatchToProps` 的值设置成一个简写对象，`react-redux` 会自动执行 `bindActionCreators` 将 `dispatch` 注入到 `action creator` 中。详情请看：https://cn.react-redux.js.org/api/connect/#%E5%AF%B9%E8%B1%A1%E7%AE%80%E5%86%99%E5%BD%A2%E5%BC%8F
+
+##### combineReducers
+
+`reducer` 是一个纯函数，它接受之前的 `state` 和一个 `action`，并返回一个新的 `state`。而 `redux` 之所以把它被叫做 `reducer`，是因为它和传入 `Array.prototype.reduce` 里的回调函数的类型一样。
+
+`reducers` 是一个 `value` 是 `reducer` 的对象，`combineReducers` 文件会将 `reducers` 里的所有 `reducer` 合并成一个 `reducer`。
+
+```javascript
+export default function combineReducers(reducers) {
+  const reducerKeys = Object.keys(reducers);
+  const finalReducers = {};
+  // 检查 reducers 的 value 是否合法，如果合法，则添加到 finalReducers 中
+  for (let i = 0; i < reducerKeys.length; i++) {
+    const key = reducerKeys[i];
+
+    // value 不能是 undefined
+    if (process.env.NODE_ENV !== "production") {
+      if (typeof reducers[key] === "undefined") {
+        warning(`No reducer provided for key "${key}"`);
+      }
+    }
+
+    // 判定 reducer 是否是一个函数
+    if (typeof reducers[key] === "function") {
+      finalReducers[key] = reducers[key];
+    }
+  }
+  const finalReducerKeys = Object.keys(finalReducers);
+
+  // This is used to make sure we don't warn about the same
+  // keys multiple times.
+  let unexpectedKeyCache;
+  if (process.env.NODE_ENV !== "production") {
+    unexpectedKeyCache = {};
+  }
+
+  let shapeAssertionError;
+  try {
+    // 使用内置的 INIT 和 PROBE_UNKNOWN_ACTION 类型触发所有 reducer，以判断 reducer 在无法识别 action 时是否有默认处理。
+    // 判断默认处理的返回值是否为 undefined。如果是，则该 reducer 非法。
+    assertReducerShape(finalReducers);
+  } catch (e) {
+    shapeAssertionError = e;
+  }
+
+  return function combination(state = {}, action) {
+    if (shapeAssertionError) {
+      // 如果前面找到了非法的 reducer，直接抛出异常，终止流程
+      throw shapeAssertionError;
+    }
+
+    // 这里调用同文件里的 getUnexpectedStateShapeWarningMessage 函数对参数做了多重校验：
+    // 1. 判断 finalReducers 是否有效。如果是个空对象，没有任何 key-value，报错。
+    // 2. 判断 state 是否是一个纯对象。如果不是，报错。
+    // 3. 判断 state 的 key 是否都存在于 finalReducers 中。如果没有，报错。
+
+    // other code ...
+
+    let hasChanged = false;
+    const nextState = {};
+    for (let i = 0; i < finalReducerKeys.length; i++) {
+      const key = finalReducerKeys[i];
+      const reducer = finalReducers[key];
+      const previousStateForKey = state[key];
+      const nextStateForKey = reducer(previousStateForKey, action);
+      // 执行开发者自定义的 action，如果 reducer 返回了 undefined，报错。
+      if (typeof nextStateForKey === "undefined") {
+        const actionType = action && action.type;
+        throw new Error(
+          `When called with an action of type ${
+            actionType ? `"${String(actionType)}"` : "(unknown type)"
+          }, the slice reducer for key "${key}" returned undefined. ` +
+            `To ignore an action, you must explicitly return the previous state. ` +
+            `If you want this reducer to hold no value, you can return null instead of undefined.`
+        );
+      }
+      nextState[key] = nextStateForKey;
+      // 对比执行 action 前后的值，判断是否发生变化
+      hasChanged = hasChanged || nextStateForKey !== previousStateForKey;
+    }
+    hasChanged =
+      hasChanged || finalReducerKeys.length !== Object.keys(state).length;
+    return hasChanged ? nextState : state;
+  };
+}
+```
+
+##### createStore
+
+`createStore` 内容很长，下面逐步进行分析。
+
+首先，是对参数的前置校验：
+
+```javascript
+export function createStore(reducer, preloadedState, enhancer) {}
 ```
