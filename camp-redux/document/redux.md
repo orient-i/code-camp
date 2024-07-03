@@ -295,7 +295,7 @@ export default function combineReducers(reducers) {
         );
       }
       nextState[key] = nextStateForKey;
-      // 对比执行 action 前后的值，判断是否发生变化
+      // 对比执行 action 前后的值，判断 state 是否发生变化
       hasChanged = hasChanged || nextStateForKey !== previousStateForKey;
     }
     hasChanged =
@@ -307,7 +307,16 @@ export default function combineReducers(reducers) {
 
 ##### createStore
 
-`createStore` 内容很长，下面逐步进行分析。
+`store` 是用来维持应用整个 `state` 的一个对象，它拥有四个方法：
+
+1. `getState()`
+2. `dispatch(action)`
+3. `subscribe(listener)`
+4. `replaceReducer(nextReducer)`
+
+其中的第二点是改变 `store`内 `state` 的唯一途径。
+
+`createStore` 就是用于创建一个这样的 `store` 对象，它的内容较多，下面进行逐步分析。
 
 首先，是对参数的前置校验：
 
