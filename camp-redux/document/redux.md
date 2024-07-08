@@ -307,19 +307,55 @@ export default function combineReducers(reducers) {
 
 ##### createStore
 
-`store` 是用来维持应用整个 `state` 的一个对象，它拥有四个方法：
+`store` 是一个用来维持应用整个 `state` 的对象，它拥有四个方法：
 
 1. `getState()`
 2. `dispatch(action)`
 3. `subscribe(listener)`
 4. `replaceReducer(nextReducer)`
 
-其中的第二点是改变 `store`内 `state` 的唯一途径。
+其中的第二点是改变 `store`内 `state` 的唯一途径。`createStore` 就是用于创建一个这样的 `store` 对象，下面逐步对它进行分析。
 
-`createStore` 就是用于创建一个这样的 `store` 对象，它的内容较多，下面进行逐步分析。
+###### 参数校验
 
-首先，是对参数的前置校验：
+`createStore` 函数体开头就是对三个入参的校验：
 
 ```javascript
-export function createStore(reducer, preloadedState, enhancer) {}
+export function createStore(reducer, preloadedState, enhancer) {
+  ifif (
+    (typeof preloadedState === 'function' && typeof enhancer === 'function') ||
+    (typeof enhancer === 'function' && typeof arguments[3] === 'function')
+  ) {
+    throw new Error(
+      'It looks like you are passing several store enhancers to ' +
+        'createStore(). This is not supported. Instead, compose them ' +
+        'together to a single function. See https://redux.js.org/tutorials/fundamentals/part-4-store#creating-a-store-with-enhancers for an example.'
+    )
+  }
+
+  if (typeof preloadedState === 'function' && typeof enhancer === 'undefined') {
+    enhancer = preloadedState
+    preloadedState = undefined
+  }
+
+  if (typeof enhancer !== 'undefined') {
+    if (typeof enhancer !== 'function') {
+      throw new Error(
+        `Expected the enhancer to be a function. Instead, received: '${kindOf(
+          enhancer
+        )}'`
+      )
+    }
+
+    return enhancer(createStore)(reducer, preloadedState)
+  }
+
+  if (typeof reducer !== 'function') {
+    throw new Error(
+      `Expected the root reducer to be a function. Instead, received: '${kindOf(
+        reducer
+      )}'`
+    )
+  }
+}
 ```
