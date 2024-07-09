@@ -217,7 +217,7 @@ export default function bindActionCreators(actionCreators, dispatch) {
 }
 ```
 
-在类组件场景下，使用 `connect` 将 `action creator` 绑定到组件上时，可以将 `mapDispatchToProps` 的值设置成一个简写对象，`react-redux` 会自动执行 `bindActionCreators` 将 `dispatch` 注入到 `action creator` 中。详情请看：https://cn.react-redux.js.org/api/connect/#%E5%AF%B9%E8%B1%A1%E7%AE%80%E5%86%99%E5%BD%A2%E5%BC%8F
+在类组件场景下，使用 `connect` 将 `action creator` 绑定到组件上时，可以将 `mapDispatchToProps` 的值设置成一个简写对象，`react-redux` 会自动执行 `bindActionCreators` 将 `dispatch` 注入到 `action creator` 中。详情请看：[官方文档说明](https://cn.react-redux.js.org/api/connect/#%E5%AF%B9%E8%B1%A1%E7%AE%80%E5%86%99%E5%BD%A2%E5%BC%8F)。
 
 ##### combineReducers
 
@@ -314,48 +314,98 @@ export default function combineReducers(reducers) {
 3. `subscribe(listener)`
 4. `replaceReducer(nextReducer)`
 
-其中的第二点是改变 `store`内 `state` 的唯一途径。`createStore` 就是用于创建一个这样的 `store` 对象，下面逐步对它进行分析。
-
-###### 参数校验
-
-`createStore` 函数体开头就是对三个入参的校验：
+其中的第二点是改变 `store` 内 `state` 的唯一途径。`createStore` 就是用于创建一个这样的 `store` 对象，下面逐步对它进行分析。
 
 ```javascript
 export function createStore(reducer, preloadedState, enhancer) {
-  ifif (
-    (typeof preloadedState === 'function' && typeof enhancer === 'function') ||
-    (typeof enhancer === 'function' && typeof arguments[3] === 'function')
-  ) {
-    throw new Error(
-      'It looks like you are passing several store enhancers to ' +
-        'createStore(). This is not supported. Instead, compose them ' +
-        'together to a single function. See https://redux.js.org/tutorials/fundamentals/part-4-store#creating-a-store-with-enhancers for an example.'
-    )
+  // 判断参数是否符合要求
+  // other code ...
+
+  if (typeof preloadedState === "function" && typeof enhancer === "undefined") {
+    enhancer = preloadedState;
+    preloadedState = undefined;
   }
 
-  if (typeof preloadedState === 'function' && typeof enhancer === 'undefined') {
-    enhancer = preloadedState
-    preloadedState = undefined
+  // enhancer 是一个可以增强 store 功能的函数，触发 enhancer 流程时，提前返回，由 enhancer 接手 store 的创建
+  if (typeof enhancer !== "undefined") {
+    // 校验 enhancer 是否是 function，若不是，报错，流程终止
+    // other code ...
+
+    return enhancer(createStore)(reducer, preloadedState);
   }
 
-  if (typeof enhancer !== 'undefined') {
-    if (typeof enhancer !== 'function') {
-      throw new Error(
-        `Expected the enhancer to be a function. Instead, received: '${kindOf(
-          enhancer
-        )}'`
-      )
+  let currentReducer = reducer;
+  let currentState = preloadedState;
+  let currentListeners = [];
+  let nextListeners = currentListeners;
+  // reducer 是否正在执行
+  let isDispatching = false;
+
+  // ???
+  function ensureCanMutateNextListeners() {
+    // other code ...
+  }
+
+  // store 的第一个功能，获取 store 内维护的 state
+  function getState() {
+    if (isDispatching) {
+      throw new Error("xxx");
     }
-
-    return enhancer(createStore)(reducer, preloadedState)
+    return currentState;
   }
 
-  if (typeof reducer !== 'function') {
-    throw new Error(
-      `Expected the root reducer to be a function. Instead, received: '${kindOf(
-        reducer
-      )}'`
-    )
+  // store 的第三个功能，监听 state 的变化
+  // 通过 subscribe 传入的 listener 会在 state 发生变更时触发执行
+  // 返回值是个函数，可以通过执行返回值取消监听
+  function subscribe(listener) {
+    // other code ...
   }
+
+  // store 的第二个功能，触发 reducer 执行以更新 state，返回值是 action 本身
+  function dispatch(action) {
+    // other code ...
+  }
+
+  // store 的第四个功能，替换当前 store 用来计算 state 的 reducer，一般来说用不着
+  function replaceReducer(nextReducer) {
+    // other code ...
+  }
+
+  // 隐藏功能，将 store 转换成一个可观察对象，可以搭配 RxJs 使用
+  function observable() {
+    // other code ...
+  }
+
+  // 触发第一个更新，初始化 state
+  dispatch({ type: ActionTypes.INIT });
+
+  return {
+    dispatch,
+    subscribe,
+    getState,
+    replaceReducer,
+    [$$observable]: observable,
+  };
+}
+```
+
+从源码中可以看到，`createStore` 有两条分支走向：
+
+```javascript
+// 1
+dispatch({ type: ActionTypes.INIT });
+
+// 2
+return enhancer(createStore)(reducer, preloadedState);
+```
+
+第二条分支走向后面再说，这里分析下第一条分支走向，看看 `dispatch` 做了些什么。
+
+```javascript
+function dispatch(action) {
+  // 校验 action：是否为纯对象、action.type 是否存在
+  // other code ...
+
+  if
 }
 ```
