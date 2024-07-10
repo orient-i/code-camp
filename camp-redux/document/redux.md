@@ -263,6 +263,7 @@ export default function combineReducers(reducers) {
     shapeAssertionError = e;
   }
 
+  // combineReducers 最终返回的是一个叫 combination 的函数，这个函数就是最终合并的 reducer
   return function combination(state = {}, action) {
     if (shapeAssertionError) {
       // 如果前面找到了非法的 reducer，直接抛出异常，终止流程
@@ -278,6 +279,8 @@ export default function combineReducers(reducers) {
 
     let hasChanged = false;
     const nextState = {};
+    // 遍历执行所有的 reducer
+    // action 只是给其中某一个 reducer 的，这也是为什么所有 reducer 的 switch...case 中都要保留一个 default 的处理逻辑
     for (let i = 0; i < finalReducerKeys.length; i++) {
       const key = finalReducerKeys[i];
       const reducer = finalReducers[key];
@@ -341,7 +344,7 @@ export function createStore(reducer, preloadedState, enhancer) {
   // reducer 是否正在执行
   let isDispatching = false;
 
-  // ???
+  // 后面关于 dispatch 的分析中会提到
   function ensureCanMutateNextListeners() {
     // other code ...
   }
@@ -399,13 +402,113 @@ dispatch({ type: ActionTypes.INIT });
 return enhancer(createStore)(reducer, preloadedState);
 ```
 
-第二条分支走向后面再说，这里分析下第一条分支走向，看看 `dispatch` 做了些什么。
+第二条分支走向后面再说，这里先分析下第一条分支走向，看看 `dispatch` 做了些什么。
 
 ```javascript
 function dispatch(action) {
   // 校验 action：是否为纯对象、action.type 是否存在
   // other code ...
 
-  if
+  // CHECK: 为什么要有这样一个 isDispatching 变量，这全都是同步操作啊
+  if (isDispatching) {
+    throw new Error("Reducers may not dispatch actions.");
+  }
+
+  try {
+    isDispatching = true;
+    // 执行 reducer，计算新的 state
+    // 如果使用 combineReducers，那么此处的 reducer 就是前面提到的 combination
+    // currentState、action 这两个入参正好和形参 state、action 对应
+    // currentState 对应 createStore 的入参 preloadedState，有可能是 undefined，这也和 combination 的 state = {} 对应上
+    currentState = currentReducer(currentState, action);
+  } finally {
+    isDispatching = false;
+  }
+
+  // 在 state 更新完成后，逐个执行 state 监听函数
+  const listeners = (currentListeners = nextListeners);
+  for (let i = 0; i < listeners.length; i++) {
+    const listener = listeners[i];
+    listener();
+  }
+
+  // 返回 action 本身
+  return action;
+}
+```
+
+从源码分析中，可以发现 `dispatch` 流程就是先触发 `reducer` 的执行，然后在 `state` 更新之后，逐个执行监听 `state` 变化的回调函数。
+
+回调函数的全流程：  
+<img src="../assets/redux-subscribe.png" />
+
+在上面回调函数的全流程图中，可以看到有两个相关变量和两个相关函数：`currentListeners`、`nextListeners`、`ensureCanMutateNextListeners`、`subscribe`。
+
+- `currentListeners` 指的是在 `state` 变化后，等待执行的回调函数队列。
+- `nextListeners` 指的是下一次 `state` 变化后，等待执行的回调函数队列。
+
+之所以要弄两个队列，是为了避免在 `listener` 执行过程中，回调函数队列发生了变化，进而导致循环出现意料之外的错误。比如说：
+
+```javascript
+const callback1 = () => {
+  console.log("xxx");
+};
+
+const callback2 = () => {
+  console.log("###");
+  unsubscribe1();
+};
+
+const callback3 = () => {
+  console.log("***");
+};
+
+const unsubscribe1 = store.subscribe(callback1);
+const unsubscribe2 = store.subscribe(callback2);
+const unsubscribe3 = store.subscribe(callback3);
+
+store.dispatch({ type: "xxx" });
+```
+
+如果只使用一个队列来存储回调函数，那么在上面这种场景下，`callback3` 会因为回调函数队列在执行 `callback2` 时长度被修改(-1)而导致无法触发。
+
+结合上面的流程图和弊病分析之后，就不难理解 `ensureCanMutateNextListeners` 和 `subscribe` 的源码了。
+
+```javascript
+let currentListeners = [];
+let nextListeners = currentListeners;
+
+// 浅拷贝 currentListeners，避免在触发 listeners 的过程中出现意料之外的错误
+function ensureCanMutateNextListeners() {
+  if (nextListeners === currentListeners) {
+    nextListeners = currentListeners.slice();
+  }
+}
+
+function subscribe(listener) {
+  // 判定 listener 是否是 function
+  // other code ...
+
+  if (isDispatching) {
+    throw new Error("xxx");
+  }
+  let isSubscribed = true;
+  ensureCanMutateNextListeners();
+  nextListeners.push(listener);
+  return function unsubscribe() {
+    // 避免同一个 listener 多次执行 unsubscribe 出错
+    if (!isSubscribed) {
+      return;
+    }
+    if (isDispatching) {
+      throw new Error("xxx");
+    }
+    isSubscribed = false;
+    ensureCanMutateNextListeners();
+    const index = nextListeners.indexOf(listener);
+    // 将取消监听的回调函数从队列中移除
+    nextListeners.splice(index, 1);
+    currentListeners = null;
+  };
 }
 ```
