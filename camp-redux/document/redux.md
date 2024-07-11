@@ -158,6 +158,42 @@ export default function compose(...funcs) {
 }
 ```
 
+当一个目标需要通过多重函数处理之后才能得到时，最直接或者说最容易想到的方式是嵌套调用多重函数：
+
+```javascript
+handleFn6(handleFn5(handleFn4(...args)));
+```
+
+这种实现方式确实可以达到目的，但是可读性算不上好，特别是当嵌套函数多、函数名长且基本没有相似处的时候，可读性会急速下降：
+
+```javascript
+// prettier-ignore
+const loc = calculateLocation(transformValueToNum(trimNullAndUndefined(getInitialValue(...args))));
+```
+
+此外，不断的嵌套也有损编程体验。而如果使用 `compose` 来实现功能，那么不仅不用陷入无止尽的嵌套，还能非常直观的看出最终结果需要经历哪些函数的处理，可读性和便利性都会得到极大提升：
+
+```javascript
+// prettier-ignore
+const fn = compose(calculateLocation, transformValueToNum, trimNullAndUndefined, getInitialValue);
+const loc = fn(...args);
+```
+
+而且 `compose` 的参数执行顺序也是和嵌套用法保持一致的，从右到左对应从里到外。
+
+`compose` 的另一种实现方案：
+
+```javascript
+// prettier-ignore
+const compose = (...funcs) => (...args) => {
+  if (!funcs.length) {
+    return args[0];
+  }
+  const param = funcs.pop()(...args);
+  return funcs.reduceRight((v, fn) => fn(v), param);
+}
+```
+
 ##### bindActionCreators
 
 `action creator` 是指返回值为 `action` 的函数，例如：
