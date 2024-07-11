@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Redux Example</title>
+    <script src="./node_modules/redux/dist/redux.js"></script>
+    <script src="app.js"></script>
+  </head>
+  <body>
+    <button onclick="subscribe()">subscribe</button>
+    <button onclick="unsubscribe()">unsubscribe</button>
+    <hr />
+    <button onclick="inc()">increment</button>
+    <button onclick="dec()">decrement</button>
+    <hr />
+    <p id="show"></p>
+    <script>
+      const show = () => {
+        const showDom = document.querySelector("#show");
+        showDom.innerHTML = `state is ${store.getState()}`;
+      };
+
+      const inc = () => {
+        store.dispatch(increment());
+        show();
+      };
+
+      const dec = () => {
+        store.dispatch(increment());
+        show();
+      };
+
+      show();
+    </script>
+  </body>
+</html>
