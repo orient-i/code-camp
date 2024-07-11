@@ -142,6 +142,8 @@ export {
 `compose.js` 文件用于实现函数组合。
 
 ```javascript
+// (...args) => f(g(h(...args))) === compose(f, g, h)(...args)
+
 export default function compose(...funcs) {
   if (funcs.length === 0) {
     return (arg) => arg;
@@ -398,18 +400,19 @@ export function createStore(reducer, preloadedState, enhancer) {
 // 1
 dispatch({ type: ActionTypes.INIT });
 
-// 2
+// 2，后面在 applyMiddleware 的分析时会说到
 return enhancer(createStore)(reducer, preloadedState);
 ```
 
-第二条分支走向后面再说，这里先分析下第一条分支走向，看看 `dispatch` 做了些什么。
+第二条分支走向后面在 `applyMiddleware` 的分析时再说，这里先分析下第一条分支走向，看看 `dispatch` 做了些什么。
 
 ```javascript
 function dispatch(action) {
   // 校验 action：是否为纯对象、action.type 是否存在
   // other code ...
 
-  // CHECK: 为什么要有这样一个 isDispatching 变量，这全都是同步操作啊
+  // 为什么要有这样一个 isDispatching 变量？这全都是同步操作啊
+  // 答案：为了避免在 reducer 中调用 dispatch，详情请看 https://github.com/reduxjs/redux/issues/1668
   if (isDispatching) {
     throw new Error("Reducers may not dispatch actions.");
   }
@@ -512,3 +515,126 @@ function subscribe(listener) {
   };
 }
 ```
+
+##### applyMiddleware
+
+`middleware` 是中间件，`apply` 是应用，`applyMiddleware` 意指通过将众多中间件串联起来形成一条 `middleware chain`（也就是一个 `enhancer`）来增强 `store` 的功能。
+
+<img src="../assets/redux-middleware-chain.png" />
+
+这种 `chain` 的思想非常契合前面的 `compose` 理念，`applyMiddleware` 源码内部也正是使用 `compose` 来构建 `middleware chain` 的。
+
+下面是 `redux-thunk` 提供的 `middleware` 和一个自定义的 `middleware`：
+
+```javascript
+// 略作简化的 redux-thunk 源码
+function thunk({ dispatch, getState }) {
+  return (next) => (action) => {
+    if (typeof action === "function") {
+      return action(dispatch, getState, extraArgument);
+    }
+    return next(action);
+  };
+}
+
+// 自定义 middleware
+function logger({ dispatch, getState }) {
+  return (next) => (action) => {
+    console.log("will dispatch", action);
+    const returnValue = next(action);
+    console.log("state after dispatch", getState());
+    return returnValue;
+  };
+}
+```
+
+下面按照如下方式来使用上述两个 `middleware`，以进一步分析 `middleware` 的执行过程：
+
+```javascript
+const store = createStore(rootReducer, applyMiddleware(logger, thunk));
+store.dispatch({ type: "xxx" });
+```
+
+集合前面 `createStore` 的源码，不难看出上述用法会命中 `createStore` 的第二条分支走向，也就是说上面的代码等同于：
+
+```javascript
+const enhanceStore = applyMiddleware(logger, thunk)(createStore)(
+  rootReducer,
+  undefined
+);
+enhanceStore.dispatch({ type: "xxx" });
+```
+
+接下来结合 `applyMiddleware` 源码来逐步分析下执行过程：
+
+```javascript
+export default function applyMiddleware(...middlewares) {
+  // 1. applyMiddleware(logger, thunk) 运行后，得到函数 (createStore) => (...args) => ...
+  return (createStore) =>
+    // 2. applyMiddleware(logger, thunk)(createStore) 运行后，得到函数 (...args) => ...
+    (...args) => {
+      // 3.1 创建原始 store 对象
+      const store = createStore(...args);
+      let dispatch = () => {
+        throw new Error("xxx");
+      };
+
+      const middlewareAPI = {
+        getState: store.getState,
+        dispatch: (...args) => dispatch(...args),
+      };
+      // 3.2 遍历执行 middleware，拿到 middleware 的返回值
+      // chain = [logger return value, thunk return value]
+      // chain = [(next) => (action) => ... , (next) => (action) => ...]
+      const chain = middlewares.map((middleware) => middleware(middlewareAPI));
+      // 3.3 覆写 dispatch
+      // dispatch = logger return value(thunk return value(store.dispatch))
+      /* 
+        const temp = (action) => {
+          if (typeof action === "function") {
+            return action(dispatch, getState, undefined);
+          }
+          return (store.dispatch)(action);
+        }
+        dispatch = (action) => {
+          console.log("will dispatch", action);
+          const returnValue = temp(action);
+          console.log("state after dispatch", getState());
+          return returnValue;
+        }
+      */
+
+      // 如果 logger 和 thunk 的位置调换，变成 applyMiddleware(thunk, logger)，则是
+      /* 
+        const temp = (action) => {
+          console.log("will dispatch", action);
+          const returnValue = (store.dispatch)(action);
+          console.log("state after dispatch", getState());
+          return returnValue;
+        }
+        dispatch = (action) => {
+          if (typeof action === "function") {
+            // 这个 dispacth 等于 middlewareAPI.dispatch
+            return action(dispatch, getState, undefined);
+          }
+          return temp(action);
+        }
+      */
+      dispatch = compose(...chain)(store.dispatch);
+
+      // 3. applyMiddleware(logger, thunk)(createStore)(rootReducer, undefined) 运行后，得到下面的对象
+      return {
+        ...store,
+        dispatch,
+      };
+    };
+}
+```
+
+从上面的步骤分析中不难得出在形如 `appleMiddleware(a, b, c)` 这种场景下有如下要点：
+
+1. 最后一个 `middleware: c` 的 `next` 是原始的 `store.dispatch` (注意，这个 `store` 指的是 3.1 创建出来的原始 `store` 对象)。
+2. 其他 `middleware` 的 `next` 是其右侧的 `middleware` 返回的 `(action) => xxx`。
+3. 所有 `middleware` 中使用的 `dispatch` 都是 `middlewareAPI.dispatch`，也就是 `(...args) => dispatch(...args)`。
+4. `(...args) => dispatch(...args)` 中的 dispatch 是被覆写后的 `dispatch`。
+5. `enhanceStore.dispatch` 等于被覆写后的 `dispacth`。
