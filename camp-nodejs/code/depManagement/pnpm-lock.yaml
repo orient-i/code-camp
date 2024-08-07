@@ -1,0 +1,64 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      mod-a:
+        specifier: ^1.0.0
+        version: 1.0.0
+      mod-c:
+        specifier: ^1.0.0
+        version: 1.0.0
+      mod-d:
+        specifier: ^1.0.0
+        version: 1.0.0
+      mod-e:
+        specifier: ^1.0.0
+        version: 1.0.0
+
+packages:
+
+  mod-a@1.0.0:
+    resolution: {integrity: sha512-LHSY3BAvHk8CV3O2J2zraDq10+VI1QT1yCTildRW12JSWwFvsnzwLhdOdrJG2gaHHIya7N4GndK+ZFh1bTBjFw==}
+
+  mod-b@1.0.0:
+    resolution: {integrity: sha512-w3+jMEBzh6ap32RoJkmkFSIi6EmBYArDviaA9mAri/zfhu5pKcIFhyiGdtt9Ce9Wz6aF7wkkL9hMd3F4XWgjsA==}
+
+  mod-b@2.0.0:
+    resolution: {integrity: sha512-F1mbrVGqDeid+VoEdswLYsznXnTG/k8xf5aYRTX7ifhzWk9yzwQJPq5wHikqx+/eLzwEaj9tjVQSLO2prdRZew==}
+
+  mod-c@1.0.0:
+    resolution: {integrity: sha512-aUhu8lL4T+UYGNi9qd+DqBfCuDaZxkBJ0gDC5lS9WhQmLusTncROjXL0W8JvVe3mvwrbJCTTbyJ8SJpm1pd9Og==}
+
+  mod-d@1.0.0:
+    resolution: {integrity: sha512-7gg7sLWjR7X0orcoF6YNl34FWZiR+RzeeuJgBxd7k2FfuuPZvwPGKu8/LShEMeGmSFT/s0Mg7SpztSq1P+IK1w==}
+
+  mod-e@1.0.0:
+    resolution: {integrity: sha512-R6Bkcffy5MNjNJlXYd8pmb0y5izO0GOZH4SmCdf7le/jQMzdGAO6/zswP8dZv3kunkCc/eOnxPKLw0MWe94alQ==}
+
+snapshots:
+
+  mod-a@1.0.0:
+    dependencies:
+      mod-b: 1.0.0
+
+  mod-b@1.0.0: {}
+
+  mod-b@2.0.0: {}
+
+  mod-c@1.0.0:
+    dependencies:
+      mod-b: 2.0.0
+
+  mod-d@1.0.0:
+    dependencies:
+      mod-b: 2.0.0
+
+  mod-e@1.0.0:
+    dependencies:
+      mod-b: 1.0.0
