@@ -1,0 +1,1 @@
+this is a test file for soft and hard link
