@@ -89,13 +89,13 @@ selfIntroduce();
 my name is zs, and my favorite games are Baldur's Gate 3
 ```
 
-可以看到 CommonJs 的用法还是很简单的，那么它是如何解决前面提到的两个弊端的呢？为什么 module.exports 导出的可以直接通过 require 拿到，而 exports 导出的却要解构之后才能拿到导出的内容呢？
+可以看到 CommonJs 的用法还是很简单的，那么它是如何解决前面提到的两个弊端的呢？为什么 module.exports 导出的可以直接通过 require 拿到，而 exports 导出的却要解构之后才能拿到导出的内容呢？此外，还有一个需要注意的点：使用 exports 导出模块时，只能使用 exports.xxx = xxx 的格式，不能使用 exports = xxx 的格式，理由请参考后面的 require 流程分析。
 
 #### 原理
 
 module、exports、require，这三个变量是 CommonJs 的关键，它们分别代表“当前文件模块的信息”、“当前模块导出的属性”、“引入模块的方法”。
 
-##### 模块包装
+##### 模块导出
 
 在代码编译的过程中，CommonJs 会对代码进行包装处理以避免命名冲突和全局污染，下面是之前 a.js 的代码经过处理之后的样子。
 
@@ -136,21 +136,25 @@ function compile(path) {
 }
 ```
 
-`runInThisContext` 可以理解成 eval，结合入参和前面经过包装后的 a.js 代码来看，不难发现在 JavaScript 文件代码中用于导出模块的 module.exports 和 exports 是等同的，它们都指向 module(此 module 是记录当前 Js 文件信息的对象)的 exports 属性，这一点通过恒等表达式也可以验证出来：
+`runInThisContext` 可以理解成 eval，结合入参和前面经过包装后的 a.js 代码来看，可以发现下面两点：
 
-```javascript
-// b.js
-exports.name = "zs";
-console.log(module.exports === exports);
-```
+1. 用于导出模块的 module.exports 和 exports 是等同的，它们都指向 module(此 module 是记录当前 Js 文件信息的对象)的 exports 属性：
 
-在 b.js 文件添加判定之后，使用 node 运行文件：
+   ```javascript
+   // b.js
+   exports.name = "zs";
+   console.log(module.exports === exports);
+   ```
 
-```shell
-node b.js
+   在 b.js 文件添加判定之后，使用 node 运行文件：
 
-true
-```
+   ```shell
+   node b.js
+
+   true
+   ```
+
+2. 源码文件中导出的模块，全都挂在用于记录源码文件信息的 module 对象的 exports 属性上。
 
 ##### 模块加载
 
@@ -163,8 +167,14 @@ function require(path) {
   if (cachedModule) {
     return cachedModule.exports;
   }
-  // 如果是一个全新的模块，则创建一个新的模块对象并将其缓存起来
-  const module = new Module(path);
+  // 如果是一个全新的模块，则创建一个新的模块对象
+  const module = {
+    id: path,
+    exports: {},
+    loaded: false,
+    ...
+  };
+  // 将新的 module 记录到 Module 缓存之中
   Module._cache[path] = module;
   // 读取源码文件内容，转换并执行源码
   compile(path);
@@ -178,13 +188,65 @@ function require(path) {
 Module 是 Node.js 用于描述文件信息的构造函数(或者说类)。从上面的伪代码可以看出 require 的执行过程大致如下所示：
 
 1. 判定是否有缓存，如果有缓存，则直接返回缓存的结果。
-2. 创建一个全新的 module 对象并记录到 Module 上，然后加载源码文件。
+2. 创建一个全新的 module 对象并记录到 Module 上，然后再加载源码文件。这让 require 在循环引用时不致于陷入无限循环：
+
+   ```javascript
+   // loop-require-d.js
+   const eInfo = require("./loop-require-e");
+   console.log(`eInfo is ${JSON.stringify(eInfo)}`);
+   module.exports = { msg: "I'm a string from loop-require-d.js" };
+
+   // loop-require-e.js
+   const dInfo = require("./loop-require-d");
+   console.log(`dInfo is ${JSON.stringify(dInfo)}`);
+   module.exports = { msg: "I'm a string from loop-require-e.js" };
+
+   // loop-require-f.js
+   require("./loop-require-d");
+   require("./loop-require-e");
+   ```
+
+   上面的例子中，loop-require-d.js 和 loop-require-e.js 相互引用，使用 node 运行 loop-require-f.js 文件之后，可以看到终端正常输出了结果，并没有陷入无限循环的陷阱中：
+
+   ```shell
+   dInfo is {}
+   eInfo is {"msg":"I'm a string from loop-require-e.js"}
+   ```
+
+   我们来逐步分析下这个结果的出现过程：
+
+   - 运行 loop-require-f.js 文件，第一行代码执行，引入 loop-require-d.js 文件
+   - loop-require-d.js 文件第一次加载，没有缓存，于是创建了个新的 module(称为 DModule) 代表 loop-require-d.js 文件。
+   - DModule 创建完成后，被记录到 Module.\_cache 里，此时 DMoule.exports 还是个空对象。
+   - 读取 loop-require-d.js 文件内容，转换并执行文件代码。loop-require-d.js 文件第一行代码触发执行，引入 loop-require-e.js 文件
+   - loop-require-e.js 文件第一次加载，没有缓存，于是也创建了个新的 module(称为 EModule) 代表 loop-require-e.js 文件。
+   - 读取 loop-require-e.js 文件内容，转换并执行文件代码。loop-require-e.js 文件第一行代码触发执行，引入 loop-require-d.js 文件
+   - 由于 loop-require-d.js 文件已经被记录到 Module.\_cache 里了，所以会直接返回 DMoule.exports，也就是个空对象。
+   - 接着 loop-require-e.js 的 console.log 触发，终端打印 dInfo，最后再导出自己的模块。至此，loop-require-e.js 加载过程结束。
+   - loop-require-d.js 文件执行流程继续，console.log 触发，终端打印 eInfo ，最后导出自己的模块。至此，loop-require-d.js 加载过程也结束了。
+   - 然后回到最开始，loop-require-f.js 文件第二行代码触发，加载 loop-require-e.js。
+   - 由于 loop-require-e.js 已经加载过了，所以直接触发返回 module.exports。故，dInfo 只打印了一次。
+
 3. 将 module 对象的 loaded 属性标记为 true，表示该模块加载完成
 4. 返回 module.exports。
 
-注意最后一步
+现在，我们来分析下前面提到的注意事项：使用 exports 导出模块时，只能使用 `exports.xxx = xxx` 的格式而不能用 `exports = xxx` 的格式。
+
+默认状态下，在代码中使用的 exports，这个形参变量，它指向的地址空间和 module.exports 的地址空间是同一个。用 `exports.xxx = xxx` 导出模块就是在往 module.exports 指向的那个地址空间添加东西，而 `exports = xxx` 这种格式，其实是给 exports 这个形参变量指定了一个全新的地址空间，require 并不知道这个全新的地址空间，它读取的一直是 module.exports 指向的那个地址空间，所以后面这种导出格式是无效的。
+
+##### Q & A
+
+为什么在提出 exports 这种导出方式之后，又引入 module.exports 这种导出方式？
+
+exports 导出的必定是个对象，引入时需要结构，module.exports 更加灵活。
 
 ### EsModule 的用法和相关原理
+
+EsModule 是由官方在 ECMAScript 2015 中引入的模块化规范，于 2015 年 6 月发布。
+
+#### 用法
+
+#### 原理
 
 ### CommonJs 和 EsModule 的差异
 
